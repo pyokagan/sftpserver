@@ -41,7 +41,11 @@
 #include <time.h>
 #include <sys/stat.h>
 #include <sys/time.h>
+#ifdef __ANDROID__
+#include <sys/statfs.h>
+#else
 #include <sys/statvfs.h>
+#endif
 
 int reverse_symlink;
 
@@ -729,12 +733,21 @@ uint32_t sftp_vany_posix_rename(struct sftpjob *job) {
 
 uint32_t sftp_vany_statfs(struct sftpjob *job) {
   char *path;
+#ifdef __ANDROID__
+  struct statfs fs;
+#else
   struct statvfs fs;
+#endif
 
   pcheck(sftp_parse_path(job, &path));
   D(("sftp_vany_statfs %s", path));
+#ifdef __ANDROID__
+  if(statfs(path, &fs) < 0)
+    return HANDLER_ERRNO;
+#else
   if(statvfs(path, &fs) < 0)
     return HANDLER_ERRNO;
+#endif
   sftp_send_begin(job->worker);
   sftp_send_uint8(job->worker, SSH_FXP_EXTENDED_REPLY);
   sftp_send_uint32(job->worker, job->id);
@@ -751,6 +764,7 @@ uint32_t sftp_vany_statfs(struct sftpjob *job) {
   return HANDLER_RESPONDED;
 }
 
+#ifndef __ANDROID__
 static uint32_t sftp_vany_statvfs_send(struct sftpjob *job, int rc, struct statvfs *fs) {
   if (rc < 0)
     return HANDLER_ERRNO;
@@ -793,6 +807,7 @@ uint32_t sftp_vany_fstatvfs(struct sftpjob *job) {
     return rc;
   return sftp_vany_statvfs_send(job, fstatvfs(fd, &fs), &fs);
 }
+#endif
 
 uint32_t sftp_vany_fsync(struct sftpjob *job) {
   int fd;
@@ -852,8 +867,10 @@ static const struct sftpextension v3_extensions[] = {
   { "posix-rename@openssh.org", "", sftp_vany_posix_rename },
   { "space-available", "", sftp_vany_space_available },
   { "statfs@openssh.org", "", sftp_vany_statfs },
+#ifndef __ANDROID__
   { "statvfs@openssh.com", "2", sftp_vany_statvfs },
   { "fstatvfs@openssh.com", "2", sftp_vany_fstatvfs },
+#endif
 };
 
 const struct sftpprotocol sftp_v3 = {

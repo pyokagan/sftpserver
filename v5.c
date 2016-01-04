@@ -34,7 +34,11 @@
 #include <fcntl.h>
 #include <errno.h>
 #include <stdio.h>
+#ifdef __ANDROID__
+#include <sys/statfs.h>
+#else
 #include <sys/statvfs.h>
+#endif
 
 uint32_t sftp_v56_open(struct sftpjob *job) {
   char *path;
@@ -413,12 +417,21 @@ uint32_t sftp_vany_text_seek(struct sftpjob *job) {
 
 uint32_t sftp_vany_space_available(struct sftpjob *job) {
   char *path;
+#ifdef __ANDROID__
+  struct statfs fs;
+#else
   struct statvfs fs;
+#endif
 
   pcheck(sftp_parse_string(job, &path, 0));
   D(("sftp_space_available %s", path));
+#ifdef __ANDROID__
+  if(statfs(path, &fs) < 0)
+    return HANDLER_ERRNO;
+#else
   if(statvfs(path, &fs) < 0)
     return HANDLER_ERRNO;
+#endif
   sftp_send_begin(job->worker);
   sftp_send_uint8(job->worker, SSH_FXP_EXTENDED_REPLY);
   sftp_send_uint32(job->worker, job->id);
@@ -484,8 +497,10 @@ static const struct sftpextension sftp_v5_extensions[] = {
   { "space-available", "", sftp_vany_space_available },
   { "statfs@openssh.org", "", sftp_vany_statfs },
   { "text-seek", "", sftp_vany_text_seek },
+#ifndef __ANDROID__
   { "statvfs@openssh.com", "2", sftp_vany_statvfs },
   { "fstatvfs@openssh.com", "2", sftp_vany_fstatvfs },
+#endif
 };
 
 const struct sftpprotocol sftp_v5 = {

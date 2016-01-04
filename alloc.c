@@ -27,6 +27,11 @@
 #include <stdlib.h>
 #include <assert.h>
 #include <string.h>
+#include <limits.h>
+#include <stddef.h>
+#if HAVE_STDINT_H
+#include <stdint.h>
+#endif
 
 union block;
 

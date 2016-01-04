@@ -192,8 +192,10 @@ static const struct sftpextension sftp_v6_extensions[] = {
   { "statfs@openssh.org", "", sftp_vany_statfs },
   { "text-seek", "", sftp_vany_text_seek },
   { "version-select", "", sftp_v6_version_select },
+#ifndef __ANDROID__
   { "statvfs@openssh.com", "2", sftp_vany_statvfs },
   { "fstatvfs@openssh.com", "2", sftp_vany_fstatvfs },
+#endif
 };
 
 const struct sftpprotocol sftp_v6 = {
