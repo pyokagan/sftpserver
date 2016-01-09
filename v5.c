@@ -293,6 +293,10 @@ uint32_t sftp_generic_open(struct sftpjob *job, const char *path,
     return HANDLER_ERRNO;
   }
   /* Set initial attributrs if we created the file */
+#ifdef __ANDROID__
+  if(created)
+      attrs->valid &= ~SSH_FILEXFER_ATTR_PERMISSIONS;
+#endif
   if(created && attrs->valid && (rc = sftp_set_fstatus(job->a, fd, attrs, 0))) { 
     const int save_errno = errno;
     close(fd);
